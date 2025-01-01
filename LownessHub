@@ -1,0 +1,132 @@
+-- Try loading the external library and handle errors gracefully
+local success, lib = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/Arceus-X-UI-Library/main/source.lua"))()
+end)
+
+if not success then
+    warn("Failed to load the UI library. Please check the URL or your internet connection.")
+    return
+end
+
+-- GUI Setup
+lib:SetTitle("LowHub")
+lib:SetIcon("http://www.roblox.com/asset/?id=9178187770")
+local a = workspace.Gravity
+
+lib:SetTheme("Default")
+
+-- Button to reset the character
+lib:AddButton("Reset Char", function()
+    game.Players.LocalPlayer.Character.Head:Destroy()
+end)
+
+-- Toggle to adjust moon gravity
+lib:AddToggle("Toggle Moon Gravity", function(state)
+    if state then
+        workspace.Gravity = 60
+    else
+        workspace.Gravity = a
+    end
+end, false)
+
+-- Button to claim the OP Quest
+lib:AddButton("Claim OP Quest", function()
+    local args = {{
+        subtitle = "Lowness Hub",
+        set = "Yuki Fortress Set",
+        rewards = {essence = 40, chestMeter = 79, exp = 8850000, cash = 51000},
+        rewardsText = "$51000 | 8850000 EXP | 40 Essence |Lowness Hub",
+        difficulty = 3,
+        title = "OP | ",
+        level = 430,
+        grade = "Non Sorcerer",
+        type = "Kill"
+    }}
+    
+    game:GetService("ReplicatedStorage").Remotes.Server.Data.TakeQuest:InvokeServer(unpack(args))
+end)
+
+-- New M1 Targeting Logic for Closest Mob
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local mobsFolder = workspace.Objects.Mobs  -- Adjust this path if needed
+
+-- Function to find the closest mob
+local function findClosestMob()
+    local closestMob = nil
+    local shortestDistance = math.huge  -- Start with a very large number
+
+    -- Iterate through all mobs in the "Mobs" folder
+    for _, mob in pairs(mobsFolder:GetChildren()) do
+        if mob:IsA("Model") and mob:FindFirstChild("Humanoid") then
+            local mobHumanoid = mob:FindFirstChild("Humanoid")
+            local mobPosition = mob.HumanoidRootPart.Position
+            local distance = (humanoidRootPart.Position - mobPosition).Magnitude  -- Calculate distance
+
+            -- If this mob is closer than the previous closest one, update
+            if distance < shortestDistance then
+                closestMob = mobHumanoid
+                shortestDistance = distance
+            end
+        end
+    end
+
+    return closestMob
+end
+
+-- Flag to control the M1 stack state
+local m1StackActive = false
+
+-- Function to continuously attack the closest mob with a faster M1 stack
+local function startFastM1Stack()
+    while m1StackActive do
+        local closestMob = findClosestMob()
+        if closestMob then
+            local args = {
+                [1] = 1,  -- Attack type or ID (usually 1 for basic M1)
+                [2] = {
+                    [1] = closestMob  -- Pass the closest mob's humanoid
+                }
+            }
+
+            -- Fire the M1 attack at the closest mob
+            game:GetService("ReplicatedStorage").Remotes.Server.Combat.M1:FireServer(unpack(args))
+        else
+            print("No mobs found!")
+        end
+        wait(0.01)  -- Adjust this value for attack speed (seconds between each attack)
+    end
+end
+
+-- Toggle to start/stop the faster M1 stack
+lib:AddToggle("Fast M1 Stack on Closest Mob", function(state)
+    m1StackActive = state  -- Activate or deactivate the M1 stack
+    if state then
+        -- Use a coroutine to run the infinite loop without blocking the GUI
+        coroutine.wrap(startFastM1Stack)()  -- Start the M1 stack when the toggle is on
+    end
+end, false)
+
+-- Infinite skill firing for God Mode
+local infiniteSkillActive = false
+local args = {
+    [1] = "Infinity: Mugen"
+}
+
+-- Function to start firing the skill infinitely
+local function startInfiniteSkill()
+    while infiniteSkillActive do
+        game:GetService("ReplicatedStorage").Remotes.Server.Combat.Skill:FireServer(unpack(args))
+        wait(0.1)  -- Adjust the wait time to control the frequency of skill firing
+    end
+end
+
+-- Toggle to activate/deactivate the infinite skill firing (God Mode)
+lib:AddToggle("God Mode (not tested)", function(state)
+    infiniteSkillActive = state  -- Toggle the infinite skill firing on/off
+    if state then
+        -- Use a coroutine to run the infinite loop without blocking the GUI
+        coroutine.wrap(startInfiniteSkill)()  -- Start firing the skill infinitely when enabled
+    end
+end, false)
