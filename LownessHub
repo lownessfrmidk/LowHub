@@ -13,7 +13,7 @@ lib:SetTitle("LowHub")
 lib:SetIcon("http://www.roblox.com/asset/?id=9178187770")
 local a = workspace.Gravity
 
-lib:SetTheme("Default")
+lib:SetTheme("TomorrowNightBlue")
 
 -- Button to reset the character
 lib:AddButton("Reset Char", function()
